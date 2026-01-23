@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Welcome {{user}}</h2>
+{% if error %} <p style="color:red">{{ error }}</p> {% endif %}
+<canvas id="moneyChart" width="400" height="200"></canvas>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="/static/script/script.js"></script>
+<form action = "/add_entry" method="post">
+    <input type="number" name="amount" placeholder="Amount" required>
+    <input type="date" name="date" required>
+    <button type="submit">Add</button>
+</form>
+<form action = "/delete_entry" method="post">
+    <input type="date" name="date" required>
+    <button type="submit">Delete</button>
+</form>
+<a href="/logout">
+    <button>Logout</button>
+</a>
+
+{% endblock %}
