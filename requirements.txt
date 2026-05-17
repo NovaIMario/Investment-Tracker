@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+starlette
+sqlalchemy
+passlib
+jinja2
+psycopg2-binary
+bcrypt
+itsdangerous

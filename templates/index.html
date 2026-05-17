@@ -1,21 +1,50 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Welcome {{user}}</h2>
-{% if error %} <p style="color:red">{{ error }}</p> {% endif %}
-<canvas id="moneyChart" width="400" height="200"></canvas>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="/static/script/script.js"></script>
-<form action = "/add_entry" method="post">
-    <input type="number" name="amount" placeholder="Amount" required>
-    <input type="date" name="date" required>
-    <button type="submit">Add</button>
-</form>
-<form action = "/delete_entry" method="post">
-    <input type="date" name="date" required>
-    <button type="submit">Delete</button>
-</form>
-<a href="/logout">
-    <button>Logout</button>
-</a>
+<div class="dashboard">
+    <header class="dash-header">
+        <div class="brand">PIT</div>
+        <div class="user-info">
+            <span class="user-label">// {{ user }}</span>
+            <a href="/logout" class="logout-btn">sign out</a>
+        </div>
+    </header>
 
+    {% if error %}
+    <div class="alert">{{ error }}</div>
+    {% endif %}
+
+    <div class="chart-section">
+        <div class="chart-meta">
+            <div class="chart-title">Portfolio Value</div>
+            <div class="chart-sub">net worth over time</div>
+        </div>
+        <canvas id="moneyChart"></canvas>
+    </div>
+
+    <div class="actions">
+        <div class="action-card">
+            <div class="action-label">// add entry</div>
+            <form action="/add_entry" method="post">
+                <div class="field-row">
+                    <input type="number" name="amount" placeholder="amount (£)" required>
+                    <input type="date" name="date" required>
+                    <button type="submit" class="btn-primary">Add →</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="action-card">
+            <div class="action-label">// delete entry</div>
+            <form action="/delete_entry" method="post">
+                <div class="field-row">
+                    <input type="date" name="date" required>
+                    <button type="submit" class="btn-danger">Delete</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="/static/script.js"></script>
 {% endblock %}

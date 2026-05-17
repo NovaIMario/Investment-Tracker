@@ -8,8 +8,15 @@ from db.database import SessionLocal, Base, engine
 from db.models import User, MoneyEntry
 from datetime import date as dateType
 from sqlalchemy.orm import Session
+import bcrypt
+import os
 
 app = FastAPI()
+def hash_password(password: str) -> str:
+    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+
+def verify_password(password: str, hashed: str) -> bool:
+    return bcrypt.checkpw(password.encode(), hashed.encode())
 
 # Access static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -25,7 +32,7 @@ def get_db():
         db.close()
         
 # Add session
-app.add_middleware(SessionMiddleware, secret_key="secret_key")
+app.add_middleware(SessionMiddleware, secret_key=os.environ.get("SECRET_KEY", "fallback"))
 
 # Set up templates eg HTML
 templates = Jinja2Templates(directory="templates")
@@ -36,23 +43,23 @@ def home(request: Request):
     if "user" not in request.session:
         return RedirectResponse(url="/login", status_code=303)
     #return home page
-    return templates.TemplateResponse("index.html", {"request": request, "user": request.session["user"]})
+    return templates.TemplateResponse(request, "index.html", {"request": request, "user": request.session["user"]})
 
 @app.get("/login")
 def login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
+    return templates.TemplateResponse(request, "login.html", {"request": request})
 
 @app.get("/register")
 def register_page(request: Request):
-    return templates.TemplateResponse("register.html", {"request": request})
+    return templates.TemplateResponse(request, "register.html", {"request": request})
 
 @app.post("/register")
 def register(request: Request, username: str=Form(...), password: str=Form(...), db: Session=Depends(get_db)):
     # Check if user already exists
     existing = db.query(User).filter(User.username == username).first()
     if existing:
-        return templates.TemplateResponse("register.html", {"request": request, "error": "Username already exists"})
-    user = User(username=username, password=password)
+        return templates.TemplateResponse(request, "register.html", {"request": request, "error": "Username already exists"})
+    user = User(username=username, password=hash_password(password))
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -63,8 +70,8 @@ def register(request: Request, username: str=Form(...), password: str=Form(...),
 def login(request: Request, username: str=Form(...), password: str=Form(...), db: Session=Depends(get_db)):
     user = db.query(User).filter(User.username == username).first()
     # Validate user username and password
-    if not user or user.password != password:
-        return templates.TemplateResponse("login.html", {"request": request, "error": "Invalid username or password"})
+    if not user or not verify_password(password, user.password):
+        return templates.TemplateResponse(request, "login.html", {"request": request, "error": "Invalid username or password"})
     # Set session
     request.session["user"] = username
     # Redirect to home page
@@ -83,7 +90,7 @@ def add_entry(request: Request, amount: int=Form(...), date: dateType=Form(...),
     user = db.query(User).filter(User.username == request.session["user"]).first()
     already_exists = db.query(MoneyEntry).filter(MoneyEntry.user_id == user.id, MoneyEntry.date == date).first()
     if(already_exists):
-        return templates.TemplateResponse("index.html", {"request": request, "user": request.session["user"], "error": "Entry for this date already exists"})
+        return templates.TemplateResponse(request, "index.html", {"request": request, "user": request.session["user"], "error": "Entry for this date already exists"})
     entry = MoneyEntry(user_id=user.id, amount=amount, date=date)
     db.add(entry)
     db.commit()
@@ -97,7 +104,7 @@ def delete_entry(request: Request, date: dateType=Form(...), db: Session=Depends
     user = db.query(User).filter(User.username == request.session["user"]).first()
     entry = db.query(MoneyEntry).filter(MoneyEntry.user_id == user.id, MoneyEntry.date == date).first()
     if not entry:
-        return templates.TemplateResponse("index.html", {"request": request, "user": request.session["user"], "error": "There isn't an entry for this date"})
+        return templates.TemplateResponse(request, "index.html", {"request": request, "user": request.session["user"], "error": "There isn't an entry for this date"})
     db.delete(entry)
     db.commit()
     return RedirectResponse(url="/", status_code=303)
